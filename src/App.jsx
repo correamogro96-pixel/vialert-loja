@@ -6,11 +6,9 @@ import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp } 
 // Importaciones de Iconos
 import { AlertTriangle, MapPin, Navigation, Car, Info, LogOut, CloudOff, RefreshCw, Share2, Camera, ArrowRight, ArrowLeft, AlignCenter } from 'lucide-react';
 
-
-
-// ==========================================
-// ⚠️ ZONA DE CONFIGURACIÓN REAL (MODIFICAR)
-// ==========================================
+// ==============================================================================
+// 🔴 ZONA DE CONFIGURACIÓN (LEER ATENTAMENTE)
+// ==============================================================================
 
 // 1. Borra o comenta la línea de abajo cuando lo uses en TU computadora:
 // const firebaseConfig = JSON.parse(__firebase_config); 
@@ -24,8 +22,8 @@ const firebaseConfig = {
   messagingSenderId: "741761156930",
   appId: "1:741761156930:web:e0054a1d08bc605b2b2adb",
   measurementId: "G-Y1JLZ0MWJ2"
-
 };
+
 
 // ==========================================
 
@@ -33,8 +31,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// Cambia esto por un nombre simple para tu base de datos
-const appId = "vialert-produccion"; 
+// En tu PC, cambia esto por un nombre simple como: const appId = "vialert-produccion";
+const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -66,14 +64,18 @@ export default function App() {
     }, { baches: 0, fallas: 0 });
   }, [markers]);
 
-  // 1. Autenticación (Modo Producción)
+  // 1. Autenticación (Robusta para Chat y PC)
   useEffect(() => {
     let isMounted = true;
     const initAuth = async () => {
       if (!auth.currentUser) {
         try {
-          // En tu PC, solo necesitas esta línea:
-          await signInAnonymously(auth);
+          // Lógica dual: Token especial para chat o anónimo para PC
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
         } catch (e) {
           console.error("Error auth:", e);
           if (isMounted) setIsOfflineMode(true);
@@ -100,11 +102,17 @@ export default function App() {
   useEffect(() => {
     if (!user && !isOfflineMode) return;
     if (isOfflineMode) return;
+    if (appId === 'default-app-id') { setIsOfflineMode(true); return; }
 
     let unsubscribeSnapshot = null;
     const startListener = async () => {
+        // Espera de seguridad para que auth se propague
+        await new Promise(resolve => setTimeout(resolve, 500));
         try {
-            const collectionPath = collection(db, 'vialert_reports'); // Nombre limpio para producción
+            const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'vialert_reports_final');
+            // NOTA: En tu PC, cambia la línea de arriba por:
+            // const collectionPath = collection(db, 'vialert_reports'); 
+            
             const q = query(collectionPath);
             unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
               const fetchedMarkers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -269,8 +277,8 @@ export default function App() {
         alert("Guardado localmente (Offline).");
     } else {
         try {
-            // Usamos nombre de colección de producción
-            await addDoc(collection(db, 'vialert_reports'), data);
+            // NOTA: En tu PC usa collection(db, 'vialert_reports')
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'vialert_reports_final'), data);
             setView('map'); 
             setReportLocation(null);
         } catch (e) {
@@ -426,4 +434,3 @@ export default function App() {
     </div>
   );
 }
-
