@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
     "firebase": "^12.6.0",
     "git": "^0.1.5",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.554.0",
     "nodemon": "^3.1.11",
     "react": "^19.2.0",
